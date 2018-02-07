@@ -2053,7 +2053,7 @@
                             <field name="sale_id" nolabel='1'>
                                 <tree editable="bottom">
 
-                                    <field name="product"/>                                  
+                                    <field name="product" domain="[('branch', '=', parent.branch)]"/>                                 
                                     <field name="qty"/>
                                     <field name="price"/>
                                     <field name="subtotal" sum="total"/>
@@ -2157,7 +2157,7 @@
                             <field name="purchase_id" nolabel='1'>
                                 <tree editable="bottom">
 
-                                    <field name="product"/>                                  
+                                    <field name="product" domain="[('branch', '=', parent.branch)]"/>
                                     <field name="qty"/>
                                     <field name="price"/>
                                     <field name="subtotal" sum="total"/>

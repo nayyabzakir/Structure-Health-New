@@ -1846,10 +1846,10 @@ class StockExtend(models.Model):
 	def compute_remaining(self):
 		prod = 0
 		sale = 0
-		records = self.env['struct.purchase.tree'].search([('product','=',self.id)])
+		records = self.env['struct.purchase.tree'].search([('product','=',self.id),('product.branch','=',self.branch.id)])
 		for x in records:
 			prod = prod + x.qty
-		record = self.env['struct.sale.tree'].search([('product','=',self.id)])
+		record = self.env['struct.sale.tree'].search([('product','=',self.id),('product.branch','=',self.branch.id)])
 		for y in record:
 			sale = sale + y.qty
 		self.remaining = prod - sale
@@ -1858,7 +1858,7 @@ class StockExtend(models.Model):
 	@api.one
 	def compute_sale(self):
 		sale = 0
-		record = self.env['struct.sale.tree'].search([('product','=',self.id)])
+		record = self.env['struct.sale.tree'].search([('product','=',self.id),('product.branch','=',self.branch.id)])
 		for y in record:
 			sale = sale + y.qty
 		self.total_sale = sale
@@ -1867,7 +1867,7 @@ class StockExtend(models.Model):
 	@api.one
 	def compute_purchase(self):
 		prod = 0
-		records = self.env['struct.purchase.tree'].search([('product','=',self.id)])
+		records = self.env['struct.purchase.tree'].search([('product','=',self.id),('product.branch','=',self.branch.id)])
 		for x in records:
 			prod = prod + x.qty
 		self.total_purchase = prod
