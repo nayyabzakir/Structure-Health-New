@@ -22,7 +22,7 @@ class RegForm(models.Model):
 	current_trainer = fields.Many2one('hr.employee', string="Current Trainer")
 	joining = fields.Date(string="Joining")
 	# invoiced_date = fields.Char(string="invoice")
-	last_date = fields.Date(string="Last Date")
+	last_date = fields.Date(string="Monthly Invoice Date")
 	member_photo = fields.Binary()
 	rejoining = fields.Date(string="Re Joining/Change Package")
 	expire_date = fields.Date(string="Expiry Date")
@@ -131,11 +131,15 @@ class RegForm(models.Model):
 	@api.multi
 	def monthly_invoice(self):
 		today_date=time.strftime("%Y-%m-%d")
-		records = self.env['reg.form'].search([('last_date','<=',today_date),('stages','=','member')])
-		sale_rec = self.env['struct.sale'].search([])
+		new_date = datetime.strptime(today_date,"%Y-%m-%d")
+		new_date = new_date + timedelta(days=3)
+		print new_date
+		print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		records = self.env['reg.form'].search([('last_date','<=',new_date),('stages','=','member')])
 		for x in records:
 			invoice_already=self.env['account.invoice'].search([('date_invoice','=',x.last_date),('partner_id','=',x.member_link.id)])
 			if not invoice_already:
+				invoice_due = datetime.strptime(x.last_date,"%Y-%m-%d")
 				if re.findall('([0-9]+)', x.payment_terms.name):
 					n = int(re.findall('([0-9]+)', x.payment_terms.name)[0])
 				else:
@@ -146,8 +150,10 @@ class RegForm(models.Model):
 					'membership_no': x.memship_no,
 					'branch': x.branch.id,
 					'payment_term_id': x.payment_terms.id,
-					'due_date': datetime.now() + timedelta(days=n),
+					'due_date': invoice_due + timedelta(days=n),
 					'date_invoice': x.last_date,
+					'type_of_invoice': 'normal',
+
 					'type': 'out_invoice',
 				})
 
@@ -156,34 +162,53 @@ class RegForm(models.Model):
 						if z.name == y.service.name:
 							a = create_invoice_entry.invoice_line_ids.create({
 								'price_unit': y.amount,
-								'account_id': y.pakg_id.accounts.id,
+								'account_id': x.package.accounts.id,
 								'name': y.service.name,
 								'invoice_id': create_invoice_entry.id,
 							})
-				x.last_date = datetime.now() + relativedelta(months=x.package.month)
 
-		for z in sale_rec:
-			if z.stages == "draft":
-				z.stages = 'invoice'
-				invoice_entries = self.env['account.invoice'].search([])
-				create_invoice_entry = invoice_entries.create({
-						'partner_id': z.name.id,
-						'branch': z.branch.id,
-						'date_invoice': z.date,
-						'membership_no':z.membership_no.memship_no,
-						'type': 'out_invoice',
-
-					})
-
-				for y in z.sale_id:
-					a = create_invoice_entry.invoice_line_ids.create({
-						'price_unit': y.subtotal,
-						'account_id': 27,
-						'name': y.product.name,
+				value = 0
+				sale_rec = self.env['struct.sale'].search([('name','=',x.member_link.id),('stages','=','draft')])
+				if sale_rec:
+					for item in sale_rec:
+						item.stages = 'invoice'
+						value = value + item.subtotal
+					b = create_invoice_entry.invoice_line_ids.create({
+						'price_unit': value,
+						'account_id': 10,
+						'name': "Mini Bar",
 						'invoice_id': create_invoice_entry.id,
 					})
 
-				z.invoice_link = create_invoice_entry.id
+				x.invoice_link = create_invoice_entry.id
+				start_date = datetime.strptime(x.last_date,"%Y-%m-%d")
+				x.last_date = start_date + relativedelta(months=x.package.month)
+
+		# for z in sale_rec:
+		# 	print "333333333333333333333333333"
+		# 	if z.stages == "draft":
+		# 		z.stages = 'invoice'
+		# 		invoice_entries = self.env['account.invoice'].search([])
+		# 		create_invoice_entry = invoice_entries.create({
+		# 				'partner_id': z.name.id,
+		# 				'branch': z.branch.id,
+		# 				'date_invoice': z.date,
+		# 				'membership_no':z.membership_no.memship_no,
+		# 				'type_of_invoice': 'minibar',
+
+		# 				'type': 'out_invoice',
+
+		# 			})
+
+		# 		for y in z.sale_id:
+		# 			a = create_invoice_entry.invoice_line_ids.create({
+		# 				'price_unit': y.subtotal,
+		# 				'account_id':  	67,
+		# 				'name': y.product.name,
+		# 				'invoice_id': create_invoice_entry.id,
+		# 			})
+
+		# 		z.invoice_link = create_invoice_entry.id
 
 
 	@api.multi
@@ -200,6 +225,9 @@ class RegForm(models.Model):
 	def compute_due_amt(self):
 		if self.invoice_link:
 			self.due_amt = self.invoice_link.due_amt
+
+
+
 
 
 	@api.one
@@ -249,16 +277,20 @@ class RegForm(models.Model):
 
 	@api.multi
 	def rec_name(self):
+		member_entries = self.env['res.partner'].search([])
+		print "11111111111111111111112121"
+		for x in member_entries:
+			x.property_account_receivable_id = 5
+			x.property_account_payable_id = 6
+
+	@api.multi
+	def member_no_get(self):
 		rec = self.env['reg.form'].search([])
 		for x in rec:
-			if x.stages == 'non_member':
-				member_entries = self.env['res.partner'].search([])
-				create_member_entry = member_entries.create({
-					'name': x.name,
-					'property_account_receivable_id': 5,
-					'property_account_payable_id': 6,
-				})
-				x.member_link = create_member_entry.id
+			record = self.env['account.invoice'].search([('id','=',x.invoice_link.id)])
+			if record:
+				record.membership_no = x.memship_no
+
 
 
 	@api.multi
@@ -333,16 +365,20 @@ class RegForm(models.Model):
 			
 	
 		if self.stages == 'member' or self.stages == 'app_form' or self.stages == 'non_member':
+			invoice_due = datetime.strptime(self.invocie_date,"%Y-%m-%d")
+
 			value = 0
 			discount = " "
 			invoice_entries = self.env['account.invoice'].search([])
 			create_invoice_entry = invoice_entries.create({
 				'partner_id': create_member.id,
 				'branch': self.branch.id,
+				'membership_no': self.memship_no,
 				'payment_term_id': self.payment_terms.id,
-				'due_date': datetime.now() + timedelta(days=x),
+				'due_date': invoice_due + timedelta(days=x),
 				'date_invoice': self.invocie_date,
 				'member': True,
+				'type_of_invoice': 'normal',
 				'type': 'out_invoice',
 			})
 
@@ -387,7 +423,10 @@ class RegForm(models.Model):
 				})
 
 			self.invoice_link = create_invoice_entry.id
-			self.last_date = datetime.now() + relativedelta(months=self.package.month)
+			
+			start_date = datetime.strptime(self.invocie_date,"%Y-%m-%d")
+			self.last_date = start_date + relativedelta(months=self.package.month)
+
 
 
 
@@ -521,6 +560,13 @@ class RegAccount(models.Model):
 			('new', 'Paid'),
 		], string='Stages', index=True, readonly=True, default='draft',
 		track_visibility='onchange', copy=False)
+	type_of_invoice = fields.Selection([
+			('normal','Normal'),
+			('massage', 'Massage'),
+			('minibar', 'MiniBar'),
+			('rejoining', 'Rejoining'),
+			('change_package', 'Change Package'),
+		], string='Type Of Invoice')
 
 
 
@@ -567,6 +613,14 @@ class RegTrainng(models.Model):
 	start_date = fields.Date(string="Start Date")
 	end_date = fields.Date(string="End Date")
 	trainer = fields.Many2one('hr.employee', string="Trainer")
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('customer')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.customer:
+			self.branch = users.branch.id
+
 
 
 class RegTrainngShedule(models.Model):
@@ -575,6 +629,13 @@ class RegTrainngShedule(models.Model):
 	name = fields.Char(string="Name", required=True)
 	responsible = fields.Many2one('hr.employee', string="Responsible")
 	tree_id = fields.One2many('training.schedule.tree', 'train_id')
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
 
 
 class RegTrainngSheduleTREE(models.Model):
@@ -596,9 +657,16 @@ class RegActivity(models.Model):
 class RegTrainngStatus(models.Model):
 	_name = 'training.status'
 
-	date = fields.Date(string="Date")
+	date = fields.Date(string="Date",required=True)
 	trainer = fields.Many2one('hr.employee', string="Trainer")
 	status_id = fields.One2many('training.status.tree', 'status_tree')
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('date')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.date:
+			self.branch = users.branch.id
 
 
 class RegTrainngStatusTree(models.Model):
@@ -612,6 +680,7 @@ class RegTrainngStatusTree(models.Model):
 	assesment = fields.Boolean(string="Assesment")
 	diet_plan = fields.Boolean(string="Diet Plan")
 	status_tree = fields.Many2one('training.status')
+
 
 
 class RegTrainngStatusType(models.Model):
@@ -667,6 +736,7 @@ class RegAppoint(models.Model):
 	def get_member_data(self):
 		if self.member_no:
 			self.mem_name = self.member_no.member_link.id
+			self.name = self.member_no.member_link.name
 
 
 	@api.multi
@@ -728,6 +798,7 @@ class RegAppoint(models.Model):
 						'branch': self.branch.id,
 						'date_invoice': self.date,
 						'membership_no': self.member_no.memship_no,
+						'type_of_invoice': 'massage',
 						'type': 'out_invoice',
 					})
 		if self.types == 'walkin':
@@ -737,6 +808,7 @@ class RegAppoint(models.Model):
 						'branch': self.branch.id,
 						'date_invoice': self.date,
 						'check': True,
+						'type_of_invoice': 'massage',
 						'type': 'out_invoice',
 
 					})
@@ -820,6 +892,13 @@ class RegVisitor(models.Model):
 	remarks_on_call = fields.Text(string='Remarks on Call to Visitors')
 	curent_date = fields.Date(string="current",compute="compute_monthly")
 	plan = fields.Boolean(string="Plan",compute="compute_plan",store=True)
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('date')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.date:
+			self.branch = users.branch.id
 	# req_date = fields.Date(string="required")
 
 	# @api.onchange('date')
@@ -865,6 +944,13 @@ class RegAttend(models.Model):
 	department = fields.Many2one('hr.department',string="Department")
 	attendance_date = fields.Char('Attendance Date')
 	member_photo = fields.Binary()
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('employee_id')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.employee_id:
+			self.branch = users.branch.id
 
 	
 
@@ -911,6 +997,7 @@ class RegReJoining(models.Model):
 	show_mem = fields.Boolean(string="Show",compute="compute_show_fields")
 	result = fields.Boolean(string="result",compute="compute_result")
 	evening = fields.Boolean(string="Evening")
+	mem_no = fields.Char(string="Membership No")
 	time_slot_m = fields.Many2one('struct.slots',string="Time Slot")
 	time_slot_n = fields.Many2one('struct.slots',string="Time Slot")
 	time_slot_af = fields.Many2one('struct.slots',string="Time Slot")
@@ -937,6 +1024,7 @@ class RegReJoining(models.Model):
 				self.member = self.membership_no.member_link.id
 				self.security = self.membership_no.security
 				self.payment_terms = self.membership_no.payment_terms.id
+				self.mem_no = self.membership_no.memship_no
 				for x in self.membership_no.service:
 					ser.append(x.name)
 				for z in ser:
@@ -956,6 +1044,7 @@ class RegReJoining(models.Model):
 				self.package = self.membership_no_ch.package.id
 				self.security = self.membership_no_ch.security
 				self.payment_terms = self.membership_no_ch.payment_terms.id
+				self.mem_no = self.membership_no_ch.memship_no
 				for x in self.membership_no_ch.service:
 					ser.append(x.name)
 				for z in ser:
@@ -1131,10 +1220,12 @@ class RegReJoining(models.Model):
 			pay = int(re.findall('([0-9]+)', self.payment_terms.name)[0])
 		else:
 			pay = 0
+		invoice_due = datetime.strptime(self.date,"%Y-%m-%d")	
 		if self.change == False:
 			if self.invoice_link:
 				self.invoice_link.unlink()
 	
+			
 			invoice_entries = self.env['account.invoice'].search([])
 			create_invoice_entry = invoice_entries.create({
 									'partner_id': self.member.id,
@@ -1142,8 +1233,9 @@ class RegReJoining(models.Model):
 									'membership_no': self.membership_no.memship_no,
 									'date_invoice': self.date,
 									'payment_term_id': self.payment_terms.id,
-									'due_date': datetime.now() + timedelta(days=pay),
+									'due_date': invoice_due + timedelta(days=pay),
 									'rejoin': True,
+									'type_of_invoice': 'rejoining',
 									'type': 'out_invoice',
 								})
 
@@ -1206,8 +1298,9 @@ class RegReJoining(models.Model):
 											'membership_no': self.membership_no_ch.memship_no,
 											'date_invoice': self.date,
 											'payment_term_id': self.payment_terms.id,
-											'due_date': datetime.now() + timedelta(days=pay),
+											'due_date': invoice_due + timedelta(days=pay),
 											'rejoin': True,
+											'type_of_invoice': 'change_package',
 											'type': 'out_invoice',
 										})
 
@@ -1263,6 +1356,7 @@ class RegReJoining(models.Model):
 				if record_ser:
 					serv1 = []
 					balance = 0
+					print "............................"
 					num = datetime.strptime(self.membership_no_ch.last_date, "%Y-%m-%d")
 					num1= datetime.strptime(self.date, "%Y-%m-%d")
 					days = abs((num1 - num).days)
@@ -1282,8 +1376,9 @@ class RegReJoining(models.Model):
 							'membership_no': self.membership_no_ch.memship_no,
 							'date_invoice': self.date,
 							'payment_term_id': self.payment_terms.id,
-							'due_date': datetime.now() + timedelta(days=pay),
+							'due_date': invoice_due + timedelta(days=pay),
 							'rejoin': True,
+							'type_of_invoice': 'change_package',
 							'type': 'out_invoice',
 							})
 
@@ -1319,8 +1414,9 @@ class RegReJoining(models.Model):
 											'membership_no': self.membership_no_ch.memship_no,
 											'date_invoice': self.date,
 											'payment_term_id': self.payment_terms.id,
-											'due_date': datetime.now() + timedelta(days=pay),
+											'due_date': invoice_due + timedelta(days=pay),
 											'rejoin': True,
+											'type_of_invoice': 'change_package',
 											'type': 'out_invoice',
 										})
 
@@ -1401,6 +1497,15 @@ class RegService(models.Model):
 
 	name = fields.Char(string='Name',required=True)
 	account = fields.Many2one('account.account',string='Account',required=True)
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
+
+
 	
 
 class RegPackage(models.Model):
@@ -1413,6 +1518,23 @@ class RegPackage(models.Model):
 	accounts = fields.Many2one('account.account',string='Registration Head', required=True)
 	security = fields.Many2one('account.account',string='Security Head', required=True)
 	pakg_tree = fields.One2many('reg.package.tree', 'pakg_id')
+	seq_id = fields.Char(string="Package No.",readonly=True)
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
+
+
+	@api.model
+	def create(self, vals):
+		vals['seq_id'] = self.env['ir.sequence'].next_by_code('pak.seq')
+		new_record = super(RegPackage, self).create(vals)
+
+		return new_record
+
 
 
 class RegPackageTree(models.Model):
@@ -1448,6 +1570,13 @@ class RegSlots(models.Model):
 		('afternoon', 'Afternoon'),
 		('evening', 'Evening'),
 	])
+	branch = fields.Many2one('branch',string='Branch',readonly=True)
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
 
 	@api.onchange('start_time', 'end_time')
 	def time_schedule(self):
@@ -1471,7 +1600,13 @@ class employee_extend(models.Model):
 
 	massus = fields.Boolean(string="Masseuse") 
 	trainer = fields.Boolean(string="Trainer")
-	branch = fields.Many2one('branch',string="Branch")
+	branch = fields.Many2one('branch',string="Branch",readonly=True)
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
 
 
 class HrEmployee(models.Model):
@@ -1557,9 +1692,10 @@ class RegSale(models.Model):
 	_name = 'struct.sale'
 
 	name = fields.Many2one('res.partner',string='Customer Name')
-	membership_no = fields.Many2one('reg.form',string='Membership No.',required=True)
+	membership_no = fields.Many2one('reg.form',string='Member',required=True)
 	date = fields.Date(string='Date',default=date.today())
 	subtotal = fields.Float(readonly=True)
+	member_no = fields.Char(string="Membership No.")
 	show_mem = fields.Boolean(string="Show",compute="compute_show_fields")
 	branch = fields.Many2one('branch', string='Branch',readonly=True)
 	invoice_link = fields.Many2one('account.invoice',readonly=True)
@@ -1586,6 +1722,7 @@ class RegSale(models.Model):
 		if self.membership_no:
 			self.name = self.membership_no.member_link.id
 			self.branch = users.branch.id
+			self.member_no = self.membership_no.memship_no
 
 
 	@api.one
@@ -1635,7 +1772,9 @@ class RegPurchase(models.Model):
 	_name = 'struct.purchase'
 
 	name = fields.Many2one('res.partner',string='Vender')
-	membership_no = fields.Many2one('reg.form',string='Membership No.')
+	membership_no = fields.Many2one('reg.form',string='Member')
+	member_no = fields.Char(string="Membership No.")
+	branch = fields.Many2one('branch', string='Branch',readonly=True)
 	date = fields.Date(string='Date',default=date.today())
 	subtotal = fields.Float()
 	waking_ref_mem = fields.Char(string='Walking Ref Member')
@@ -1645,6 +1784,7 @@ class RegPurchase(models.Model):
 		('invoice', 'Invoiced'),
 		('validate', 'Validate'),
 	], default='draft')
+
 
 
 	@api.onchange('purchase_id')
@@ -1657,8 +1797,11 @@ class RegPurchase(models.Model):
 
 	@api.onchange('membership_no')
 	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
 		if self.membership_no:
 			self.name = self.membership_no.member_link.id
+			self.member_no = self.membership_no.memship_no
+			self.branch = users.branch.id
 
 
 class RegPurchaseTree(models.Model):
@@ -1688,6 +1831,16 @@ class StockExtend(models.Model):
 	total_sale = fields.Float(string='Total Sale',compute="compute_sale")
 	total_purchase = fields.Float(string='Total Purchase',compute="compute_purchase")
 	remaining = fields.Float(string='Remaining',compute="compute_remaining")
+	branch = fields.Many2one('branch', string='Branch',readonly=True)
+
+
+	@api.onchange('name')
+	def get_customer(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
+
+
 
 	@api.one
 	def compute_remaining(self):
@@ -1750,6 +1903,7 @@ class InvoiceWizard(models.Model):
 							'branch': x.branch.id,
 							'date_invoice': x.date,
 							'membership_no':x.membership_no.memship_no,
+							'type_of_invoice': 'minibar',
 							'type': 'out_invoice',
 
 						})

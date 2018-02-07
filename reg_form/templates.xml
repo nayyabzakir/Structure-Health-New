@@ -23,9 +23,11 @@
 
                                 <button name="createBioUsers" type="object" string="Bio User"/>
 
+                                <!-- <button name="member_no_get" type="object" string="Member No"/> -->
+
                                 <button name="deleteBioUsers" type="object" string="Delete Bio User"/>
 
-                                <button name="rec_name" type="object" string="Rec Name"/>
+                                <!-- <button name="monthly_invoice" type="object" string="Rec Name"/> -->
 
                                 <button name="create_member" type="object" string="Create Member" class="oe_highlight" attrs="{'invisible':[('result','=',False)]}"/>
 
@@ -58,6 +60,7 @@
                                     <group>
                                         
                                         <field name="invocie_date"/>
+                                        <field name="last_date"/>
                                         <field name="memship_no"  />
                                         <field name="package" options="{'no_create':True}" />
                                         <field name="service" options="{'no_create':True}" widget="many2many_tags"/>
@@ -65,7 +68,6 @@
                                         <field name="avg_per_month" attrs="{'invisible':[('stages','in','leads')]}"/>
                                         <!-- <field name="rejoining"/> -->
                                         <field name="expire_date" invisible="1"/>
-                                        <field name="last_date" invisible="1"/>
                                         <!-- <field name="ref_no"/> -->
                                         <field name="payment_terms" options="{'no_create':True}"/>
                                         
@@ -81,6 +83,7 @@
                                         <!-- <field name="req_date" invisible="1"/> -->
                                         <field name="new_join" invisible="1"/>
                                         <field name="premium"/>
+                                        <field name="write_date" string="Dis Continue Date"/>
                                         <!-- <field name="assesment"/> -->
                                         <field name="joining" />
                                         <field name="rejoining" attrs="{'invisible':[('stages','in',['leads','app_form'])],'readonly':[('stages','in',['non_member','member'])]}"/>
@@ -277,6 +280,8 @@
                         </xpath>
                         <xpath expr="//field[@name='user_id']" position="after">
                             <field name="due_date"/>
+                            <field name="type_of_invoice"/>
+
                         </xpath>
 
                         <xpath expr="//field[@name='amount_total']" position="after">
@@ -405,6 +410,11 @@
 
                         </xpath>
 
+                        <xpath expr="//field[@name='partner_id']" position="after">
+                            <field name="membership_no"/>
+
+                        </xpath>
+
                         <xpath expr="//field[@name='company_currency_id']" position="after">
 
                             <field name="stages" string="Stages"/>
@@ -413,6 +423,40 @@
 
                     </field> 
                 </record>
+
+            <record id="account.view_account_invoice_filter" model="ir.ui.view">
+                <field name="name">account.invoice.select</field>
+                <field name="model">account.invoice</field>
+                <field name="arch" type="xml">
+                    <search string="Search Invoice">
+                        <field name="number" string="Invoice" filter_domain="['|','|','|', ('number','ilike',self), ('origin','ilike',self), ('reference', 'ilike', self), ('partner_id', 'child_of', self)]"/>
+                        <field name="journal_id" />
+                        <filter name="draft" string="Draft" domain="[('state','in',('draft', 'proforma'))]"/>
+                        <filter name="proforma" string="Proforma" domain="[('state','=','proforma2')]" groups="account.group_proforma_invoices"/>
+                        <filter name="invoices" string="Invoices" domain="['&amp;', ('state','in',['open','paid']),('type','in',('out_invoice','in_invoice'))]"/>
+                        <filter name="refunds" string="Refunds" domain="['&amp;', ('state','in',['open','paid']),('type','in',('out_refund','in_refund'))]"/>
+                        <separator/>
+                        <filter name="unpaid" string="Not Paid" domain="[('state','=','open')]"/>
+                        <filter name="late" string="Overdue" domain="['&amp;', ('date_due', '&lt;', time.strftime('%%Y-%%m-%%d')), ('state', '=', 'open')]" help="Overdue invoices, maturity date passed"/>
+                        <separator/>
+                        <field name="partner_id" operator="child_of"/>
+                        <field name="user_id" string="Salesperson"/>
+                        <field name="date" string="Period"/>
+                        <field name="membership_no" string="Member"/>
+                        <separator/>
+                        <filter domain="[('user_id','=',uid)]" help="My Invoices"/>
+                        <group expand="0" string="Group By">
+                            <filter name="group_by_partner_id" string="Partner" context="{'group_by':'commercial_partner_id'}"/>
+                            <filter string="Salesperson" context="{'group_by':'user_id'}"/>
+                            <filter name="status" string="Status" context="{'group_by':'state'}"/>
+                            <separator/>
+                            <filter string="Invoice Date" context="{'group_by':'date_invoice'}"/>
+                            <filter string="Due Date" context="{'group_by':'date_due'}"/>
+                        </group>
+                   </search>
+                </field>
+
+            </record>
 
              
             <!--************************[Search View-ENDS]********************-->
@@ -541,13 +585,14 @@
 
                                         <field name="customer"/>
                                         <field name="start_date"/>
+                                        <field name="trainer" domain="[('trainer','=',True)]"/>
                                         
                                     </group>
                                     <group>
                                         
+                                        <field name="branch"/>
                                         <field name="training"/>
                                         <field name="end_date"/>
-                                        <field name="trainer" domain="[('trainer','=',True)]"/>
                                         
                                     </group>
                                 </group>
@@ -568,6 +613,7 @@
                     <field name="res_model">struct.training</field>
                     <field name="view_type">form</field>
                     <field name="view_mode">tree,form</field>
+                    <field name="context">{'readonly_by_pass': True}</field>
                 </record>
 
 
@@ -666,6 +712,7 @@
                                     </group>
 
                                     <group>
+                                        <field name="branch"/>
                                         <field name="responsible"/>
                                     </group>
                                 </group>
@@ -691,6 +738,8 @@
                     <field name="res_model">training.schedule</field>
                     <field name="view_type">form</field>
                     <field name="view_mode">tree,form</field>
+                    <field name="context">{'readonly_by_pass': True}</field>
+
                 </record>
 
                 <menuitem name="Training Schedule" id="reg_schedule" parent="reg_form_train" action="action_schedule" sequence="2"/>
@@ -729,6 +778,7 @@
                                     </group>
 
                                     <group>
+                                        <field name="branch"/>
                                         <field name="trainer" domain="[('trainer','=',True)]"/>
                                     </group>
                                 </group>
@@ -757,6 +807,8 @@
                     <field name="res_model">training.status</field>
                     <field name="view_type">form</field>
                     <field name="view_mode">tree,form</field>
+                    <field name="context">{'readonly_by_pass': True}</field>
+
                 </record>
 
                 <menuitem name="Training Status" id="reg_status" parent="reg_form_train" action="action_status" sequence="3"/>
@@ -865,6 +917,7 @@
              
                         <field name="name"/>
                         <field name="date"/>
+                        <field name="time"/>
                         <field name="stages"/>
 
                     </tree> 
@@ -899,6 +952,7 @@
                                 </group>
 
                                 <group>
+                                    <field name="branch"/>
                                     <field name="name"/>
                                     <field name="member_photo" widget='image' string="Visitors Photo" />
 
@@ -923,6 +977,8 @@
                 <field name="res_model">struct.visitor</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
+
             </record>
 
             <menuitem name="Visitors" id="reg_visit" parent="reg_form_visitor" action="action_visit" sequence="1"/>
@@ -1054,7 +1110,7 @@
                 <field name="model">struct.attend</field>
                 <field name="type">form</field>
                 <field name="arch" type="xml">
-                   <form string="Gym Attendance">
+                   <form string="Gym Attendance" delete="false" duplicate="false" create="false">
                     <header> 
                     </header>
                     <sheet>
@@ -1070,8 +1126,8 @@
                                  <field name="member_photo" widget='image' string="Member Photo" />
                             </group>
                             <group name="group_right">
+                                <field name="branch"/>
                                 <field name="attendance_date"/>
-                                <!-- <field name="machine_name"/> -->
                                 <field name="machine_id" />
                                 <field name="department" invisible="1"/>
                                 <field name="date"/>
@@ -1084,30 +1140,31 @@
             </record>
 
 
-            <record id="view_tree_attend" model="ir.ui.view"> 
-                <field name="name">view_tree_attend</field> 
+            <record id="attend_tree_view" model="ir.ui.view"> 
+                <field name="name">attend_tree_view</field> 
                 <field name="model">struct.attend</field> 
                 <field name="type">tree</field> 
                 <field name="arch" type="xml"> 
-                    <tree>
-                    <field name="employee_id"/>
-                    <field name="machine_id" />
-                    <field name="date" />
-                    <field name="time" />
+                    <tree delete="false" create="false">
+                        <field name="employee_id"/>
+                        <field name="machine_id" />
+                        <field name="date" />
+                        <field name="time" />
                     </tree> 
                 </field> 
             
             </record>
 
 
-            <record model="ir.actions.act_window" id="action_attend">
+            <record model="ir.actions.act_window" id="action_attend_ecube">
                 <field name="name">Attendances</field>
                 <field name="res_model">struct.attend</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
-            <menuitem name="Attendances" id="reg_attend" parent="reg_form_attend" action="action_attend" sequence="1"/>
+            <menuitem name="Attendances" id="reg_attend_ecube" parent="reg_form_attend" action="action_attend_ecube" sequence="1"/>
 
 
 
@@ -1115,7 +1172,7 @@
         <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 
 
-            <record id="attend_report_form_view" model="ir.ui.view">
+            <!-- <record id="attend_report_form_view" model="ir.ui.view">
                 <field name="name">attend_report_form_view</field>
                 <field name="model">struct.attend.report</field>
                 <field name="type">form</field>
@@ -1134,18 +1191,20 @@
                         </sheet>
                     </form>
                 </field>
-            </record>
+            </record> -->
 
-            <record model="ir.actions.act_window" id="action_attend_report">
+            <record model="ir.actions.act_window" id="action_attend_report_ecube">
                 <field name="name">Attendance Report</field>
-                <field name="res_model">struct.attend.report</field>
+                <field name="res_model">struct.attend</field>
                 <field name="view_type">form</field>
+                <field name="domain">[('date','&lt;=',(context_today()+relativedelta(day=31)).strftime('%Y-%m-%d')),('date','&gt;=',(context_today()-relativedelta(day=1)).strftime('%Y-%m-%d'))]</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
-            <menuitem name="Attendance Report" id="reg_attend_report" parent="reg_form_attend" action="action_attend_report" sequence="2"/>
-<!-- 
-            <record id="view_tree_attend" model="ir.ui.view"> 
+            <menuitem name="Attendance Report" id="reg_attend_report_ecube" parent="reg_form_attend" action="action_attend_report_ecube" sequence="2"/>
+
+            <!-- <record id="view_tree_attend" model="ir.ui.view"> 
                 <field name="name">view_tree_attend</field> 
                 <field name="model">struct.attend.report</field> 
                 <field name="type">tree</field> 
@@ -1240,6 +1299,7 @@
                                     <field name="date"/>
                                     <field name="membership_no" attrs="{'invisible':[('change','=',True)],'required':[('change','=',False)]}" domain="[('stages','=','non_member')]"/>
                                     <field name="membership_no_ch" attrs="{'invisible':[('change','=',False)],'required':[('change','=',True)]}" domain="[('stages','=','member')]"/>
+                                    <field name="mem_no"/>
                                     <field name="member"/>
                                     <!-- <field name="advance"/> -->
                                     <field name="package"/>
@@ -1336,6 +1396,7 @@
                     <field name="arch" type="xml"> 
                         <search>
                             <field name="member"/>
+                            <field name="mem_no"/>
                         </search>
                     </field>            
                 </record>
@@ -1553,6 +1614,8 @@
                                 </group>
 
                                 <group>
+
+                                    <field name="branch"/>
                                     <field name="account"/>
                                 </group>
                             </group>
@@ -1567,6 +1630,7 @@
                 <field name="res_model">struct.service</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
             <menuitem name="Services" id="reg_service" parent="reg_form_config" action="action_service" sequence="1"/>
@@ -1598,11 +1662,13 @@
                         <sheet>
                             <group>
                                 <group>
+                                    <field name="seq_id"/>  
                                     <field name="name"/>   
                                     <field name="month"/>   
                                 </group>
 
                                 <group>
+                                    <field name="branch"/>
                                     <field name="reg_fee"/>
                                     <field name="accounts"/>
                                     <field name="security"/>   
@@ -1627,6 +1693,7 @@
                 <field name="res_model">reg.package</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
 
@@ -1640,11 +1707,31 @@
                 <field name="arch" type="xml"> 
                     <tree> 
              
+                        <field name="seq_id"/>
                         <field name="name"/>
  
                     </tree> 
                 </field> 
             
+            </record>
+
+            <record id="pakage_sequence" model="ir.sequence">
+                <field name="name">pakage_sequence</field>
+                <field name="code">pak.seq</field>
+                <field name="prefix">P-</field>
+                <field name="padding">3</field>
+             
+            </record>
+
+            <record id="view_package_search" model="ir.ui.view"> 
+                <field name="name">view_package_search</field> 
+                <field name="model">reg.package</field> 
+                <field name="arch" type="xml"> 
+                    <search>
+                        <field name="seq_id"/>
+                        <field name="name"/>
+                    </search>
+                </field>         
             </record>
 
         <!--************************[Menu-ENDS]***************************-->
@@ -1677,6 +1764,7 @@
                 <field name="res_model">hr.employee</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
             <menuitem name="Personal Tranier" id="reg_trainer" parent="reg_form_config" action="action_trainer" sequence="3"/>
@@ -1714,6 +1802,7 @@
                                 </group>
 
                                 <group>
+                                    <field name="branch"/>
                                     <field name="name"/>
                                     <field name="training"/>
                                 </group>
@@ -1729,6 +1818,7 @@
                 <field name="res_model">struct.slots</field>
                 <field name="view_type">form</field>
                 <field name="view_mode">tree,form</field>
+                <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
             <menuitem name="Time Slots" id="reg_slots" parent="reg_form_config" action="action_slots" sequence="4"/>
@@ -1855,29 +1945,6 @@
                 sequence="1"/>
 
 
-        <!-- <record id="action_invoice_tree1" model="ir.actions.act_window">
-            <field name="name">Customer Invoices</field>
-            <field name="res_model">account.invoice</field>
-            <field name="view_type">form</field>
-            <field name="view_mode">tree,kanban,form,calendar,pivot,graph</field>
-            <field eval="False" name="view_id"/>
-            <field name="domain">[('type','in',('out_invoice', 'out_refund')),('due_amt','&gt;',0)]</field>
-            <field name="context">{'type':'out_invoice', 'journal_type': 'sale'}</field>
-            <field name="help" type="html">
-              <p class="oe_view_nocontent_create">
-                Click to create a customer invoice.
-              </p><p>
-                Odoo's electronic invoicing allows to ease and fasten the
-                collection of customer payments. Your customer receives the
-                invoice by email and he can pay online and/or import it
-                in his own system.
-              </p><p>
-                The discussions with your customer are automatically displayed at
-                the bottom of each invoice.
-              </p>
-            </field>
-        </record> -->
-
          
 
 
@@ -1970,6 +2037,7 @@
                                 <group>
                                     <field name="name"/>
                                     <field name="membership_no"/>
+                                    <field name="member_no"/>
                                     <field name="invoice_link"/>
                                 </group>
 
@@ -2017,6 +2085,7 @@
              
                         <field name="name"/>
                         <field name="membership_no"/>
+                        <field name="member_no"/>
                         <field name="date"/>
                         <field name="stages"/>
                         <field name="subtotal" sum="total"/>
@@ -2045,6 +2114,17 @@
                 </field>
             </record>
 
+            <record id="view_search_sale" model="ir.ui.view"> 
+                <field name="name">view_search_sale</field> 
+                <field name="model">struct.sale</field> 
+                <field name="arch" type="xml"> 
+                    <search>
+                        <field name="name"/>
+                        <field name="member_no"/>
+                    </search>
+                </field>            
+            </record>
+
         <!--************************[Menu-ENDS]***************************-->
         <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 
@@ -2063,9 +2143,11 @@
                                 <group>
                                     <field name="name"/>
                                     <field name="membership_no"/>
+                                    <field name="member_no"/>
                                 </group>
 
                                 <group>
+                                    <field name="branch"/>
                                     <field name="date"/>
                                     <field name="waking_ref_mem"/>
                                     <field name="subtotal" invisible="1"/>
@@ -2107,6 +2189,7 @@
              
                         <field name="name"/>
                         <field name="membership_no"/>
+                        <field name="member_no"/>
                         <field name="date"/>
                         <field name="stages"/>
                         <field name="subtotal" sum="total"/>
@@ -2114,6 +2197,17 @@
                     </tree> 
                 </field> 
             
+            </record>
+
+            <record id="view_search_purchase" model="ir.ui.view"> 
+                <field name="name">view_search_purchase</field> 
+                <field name="model">struct.purchase</field> 
+                <field name="arch" type="xml"> 
+                    <search>
+                        <field name="name"/>
+                        <field name="member_no"/>
+                    </search>
+                </field>            
             </record>
 
 
@@ -2128,7 +2222,7 @@
                 <field name="res_model">product.template</field>
                 <field name="view_mode">tree,kanban,form</field>
                 <field name="view_type">form</field>
-                <field name="context">{"search_default_filter_to_sell":1}</field>
+                <field name="context">{"search_default_filter_to_sell":1,'readonly_by_pass': True}</field>
                 <field name="help" type="html">
                     <p class="oe_view_nocontent_create">
                         Click to define a new product.
@@ -2153,6 +2247,12 @@
                         <field name="remaining" />
                         <field name="total_sale" />
                         <field name="total_purchase" />
+                            
+                    </xpath>
+
+                    <xpath expr="//field[@name='type']" position="before">
+
+                        <field name="branch" />
                             
                     </xpath>
 
@@ -2423,6 +2523,7 @@
                 <tree> 
          
                     <field name="partner_id"/>
+                    <!-- <field name="membership_no"/> -->
                     <field name="date_invoice"/>
                     <field name="number"/>
                     <field name="reference"/>
@@ -2440,6 +2541,7 @@
             </field> 
         
         </record>
+
 
         <record model="ir.actions.act_window" id="action_paid">
             <field name="name">Paid Invoice</field>
