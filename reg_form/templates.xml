@@ -1110,7 +1110,7 @@
                 <field name="model">struct.attend</field>
                 <field name="type">form</field>
                 <field name="arch" type="xml">
-                   <form string="Gym Attendance" delete="false" duplicate="false" create="false">
+                   <form string="Gym Attendance" >
                     <header> 
                     </header>
                     <sheet>
@@ -1145,7 +1145,7 @@
                 <field name="model">struct.attend</field> 
                 <field name="type">tree</field> 
                 <field name="arch" type="xml"> 
-                    <tree delete="false" create="false">
+                    <tree >
                         <field name="employee_id"/>
                         <field name="machine_id" />
                         <field name="date" />
@@ -1193,7 +1193,7 @@
                 </field>
             </record> -->
 
-            <record model="ir.actions.act_window" id="action_attend_report_ecube">
+            <!-- <record model="ir.actions.act_window" id="action_attend_report_ecube">
                 <field name="name">Attendance Report</field>
                 <field name="res_model">struct.attend</field>
                 <field name="view_type">form</field>
@@ -1202,7 +1202,7 @@
                 <field name="context">{'readonly_by_pass': True}</field>
             </record>
 
-            <menuitem name="Attendance Report" id="reg_attend_report_ecube" parent="reg_form_attend" action="action_attend_report_ecube" sequence="2"/>
+            <menuitem name="Attendance Report" id="reg_attend_report_ecube" parent="reg_form_attend" action="action_attend_report_ecube" sequence="2"/> -->
 
             <!-- <record id="view_tree_attend" model="ir.ui.view"> 
                 <field name="name">view_tree_attend</field> 
