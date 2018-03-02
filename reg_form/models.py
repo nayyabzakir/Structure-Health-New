@@ -23,6 +23,8 @@ class RegForm(models.Model):
 	joining = fields.Date(string="Joining")
 	# invoiced_date = fields.Char(string="invoice")
 	last_date = fields.Date(string="Monthly Invoice Date")
+	red_date = fields.Date(string="red Date")
+	normal_date = fields.Date(string="Normal Date")
 	member_photo = fields.Binary()
 	rejoining = fields.Date(string="Re Joining/Change Package")
 	expire_date = fields.Date(string="Expiry Date")
@@ -62,6 +64,9 @@ class RegForm(models.Model):
 	evening = fields.Boolean(string="Evening")
 	bol_email = fields.Boolean(string="Email")
 	premium = fields.Boolean(string="Premium")
+	diet_plan = fields.Boolean(string="Diet Plan")
+	health = fields.Boolean(string="Health Assesment")
+	approved = fields.Boolean(string="Approved")
 	show_mem = fields.Boolean(string="Show",compute="compute_show_fields")
 	result = fields.Boolean(string="result",compute="compute_result")
 	new_join = fields.Boolean(string="new",compute="compute_new_join")
@@ -133,8 +138,6 @@ class RegForm(models.Model):
 		today_date=time.strftime("%Y-%m-%d")
 		new_date = datetime.strptime(today_date,"%Y-%m-%d")
 		new_date = new_date + timedelta(days=3)
-		print new_date
-		print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		records = self.env['reg.form'].search([('last_date','<=',new_date),('stages','=','member')])
 		for x in records:
 			invoice_already=self.env['account.invoice'].search([('date_invoice','=',x.last_date),('partner_id','=',x.member_link.id)])
@@ -182,7 +185,15 @@ class RegForm(models.Model):
 
 				x.invoice_link = create_invoice_entry.id
 				start_date = datetime.strptime(x.last_date,"%Y-%m-%d")
+				x.normal_date = x.last_date
 				x.last_date = start_date + relativedelta(months=x.package.month)
+				x.approved = True
+
+		rec = self.env['reg.form'].search([('stages','=','member')])
+		for x in rec:
+			if x.normal_date:
+				if today_date >= x.normal_date:
+					x.approved = False
 
 		# for z in sale_rec:
 		# 	print "333333333333333333333333333"
@@ -238,16 +249,13 @@ class RegForm(models.Model):
 
 
 
-	# @api.one
-	# def compute_required(self):
-	# 	if self.result == True and 
-
-
 	@api.one
 	def compute_new_join(self):
 		if self.result == False and self.stages == 'app_form':
 			self.new_join = True
 
+
+	
 
 	@api.one
 	def compute_show_fields(self):
@@ -305,6 +313,14 @@ class RegForm(models.Model):
 	def app_form(self):
 		self.stages = 'app_form'
 
+	@api.multi
+	def branch_code(self):
+		rec = self.env['reg.form'].search([])
+		for x in rec:
+			if x.branch:
+				if x.member_link:
+					x.member_link.branch = x.branch.id
+
 	# @api.multi
 	# def rec_name(self):
 	# 	records = self.env['reg.form'].search([])
@@ -326,11 +342,13 @@ class RegForm(models.Model):
 				'context': {'default_reg_link':self.id},
 				'target': 'new', }
 
-	@api.onchange('name')
-	def get_branch(self):
-		users = self.env['res.users'].search([('id','=',self._uid)])
-		if self.name:
-			self.branch = users.branch.id
+	
+
+	# @api.onchange('name')
+	# def get_branch(self):
+	# 	users = self.env['account.invoice'].search([])
+	# 	for x in users:
+	# 		x.branch = 1
 
 
 
@@ -426,6 +444,8 @@ class RegForm(models.Model):
 			
 			start_date = datetime.strptime(self.invocie_date,"%Y-%m-%d")
 			self.last_date = start_date + relativedelta(months=self.package.month)
+			
+
 
 
 
@@ -515,6 +535,13 @@ class RegForm(models.Model):
 				else:
 					raise ValidationError('Discount Can not be more than 100%')
 
+
+	@api.onchange('name')
+	def get_branch_id(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		if self.name:
+			self.branch = users.branch.id
+
 	# if self.discount_type == False:
 	# 	print "1111111111111111111111111"
 	# 	self.discount_amt = self.total
@@ -543,7 +570,7 @@ class RegStatus(models.Model):
 class RegAccount(models.Model):
 	_inherit = 'account.invoice'
 
-	branch = fields.Many2one('branch', string='Branch',readonly=True)
+	branch = fields.Many2one('branch', string='Branch')
 	due_date = fields.Date(string='Due Date',readonly=True)
 	status = fields.Many2one('reg.status',string='Status')
 	check = fields.Boolean()
@@ -584,8 +611,10 @@ class RegAccount(models.Model):
 		new_record = super(RegAccount, self).action_invoice_open()
 		self.due_amt = self.amount_total
 		self.stages = 'open'
+		JournalEntry =  self.env['account.move'].search([('name','=',self.number)])
+		if self.branch:
+			JournalEntry.branch = self.branch.id
 
-   
 		return new_record
 
 
@@ -701,8 +730,9 @@ class RegAppoint(models.Model):
 		[('member', 'Member'), ('walkin', 'Walkin'), ('ref', 'Reference'), ('comp', 'Complimentory')], string="Type",required=True)
 	book_status = fields.Selection(
 		[('book', 'Booked'), ('avial', 'Availed'), ('cancel', 'Cancelled')], string="Booking Status")
-	date = fields.Date(string='Date',default=date.today())
-	time = fields.Datetime(string='Appointment Time')
+	date = fields.Date(string='Date',default=fields.Date.context_today)
+	s_time = fields.Datetime(string='Start Time')
+	e_time = fields.Datetime(string='End Time')
 	member_no = fields.Many2one('reg.form', string='Membership No.')
 	mamsus_name = fields.Many2one('hr.employee', string='Masseuse Name')
 	invoice_link = fields.Many2one('account.invoice', string='Invoice')
@@ -737,6 +767,20 @@ class RegAppoint(models.Model):
 		if self.member_no:
 			self.mem_name = self.member_no.member_link.id
 			self.name = self.member_no.member_link.name
+
+
+	@api.model
+	def create(self, vals):
+		new_record = super(RegAppoint, self).create(vals)
+		if new_record.s_time:
+			rec = self.env['struct.appointment'].search([('id','!=',new_record.id)])
+			for x in rec:
+				if x.date == new_record.date:
+					if (new_record.s_time >= x.s_time and new_record.s_time <= x.e_time) or (new_record.e_time >= x.s_time and new_record.e_time <= x.e_time) or (new_record.s_time <= x.s_time and new_record.e_time >= x.e_time):
+						raise  ValidationError('Cannot Create Record . Please Change Timings')
+
+		return new_record
+
 
 
 	@api.multi
@@ -1618,6 +1662,8 @@ class PartnerExtend(models.Model):
 	_inherit = 'res.partner'
 
 	walkin = fields.Boolean(string='Walkin Customer')
+	branch = fields.Many2one('branch')
+	
 
 	@api.onchange('walkin')
 	def change(self):
@@ -1692,11 +1738,13 @@ class RegSale(models.Model):
 	_name = 'struct.sale'
 
 	name = fields.Many2one('res.partner',string='Customer Name')
-	membership_no = fields.Many2one('reg.form',string='Member',required=True)
-	date = fields.Date(string='Date',default=date.today())
+	cust_name = fields.Char(string='Name')
+	membership_no = fields.Many2one('reg.form',string='Member')
+	date = fields.Date(string='Date',default=fields.Date.context_today)
 	subtotal = fields.Float(readonly=True)
 	member_no = fields.Char(string="Membership No.")
 	show_mem = fields.Boolean(string="Show",compute="compute_show_fields")
+	show_walk = fields.Boolean(string="walk")
 	branch = fields.Many2one('branch', string='Branch',readonly=True)
 	invoice_link = fields.Many2one('account.invoice',readonly=True)
 	waking_ref_mem = fields.Char(string='Walking Ref Member')
@@ -1725,12 +1773,16 @@ class RegSale(models.Model):
 			self.member_no = self.membership_no.memship_no
 
 
+
+
 	@api.one
 	def compute_show_fields(self):
 		if self.invoice_link:
 			if self.invoice_link.stages != 'draft':
 				if self.invoice_link.due_amt == 0:
 					self.show_mem = True
+				if self.stages == 'validate':
+					self.show_mem = False
 
 	@api.multi
 	def unlink(self):
@@ -1744,6 +1796,18 @@ class RegSale(models.Model):
 	@api.multi
 	def validate(self):
 		self.stages = "validate"
+
+
+	@api.onchange('name')
+	def get_walk(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
+		self.branch = users.branch.id
+		if self.name.walkin == True:
+			self.show_walk = True
+			self.membership_no = False
+			self.member_no = False
+		else:
+			self.show_walk = False
 
 
 			
@@ -1911,12 +1975,19 @@ class InvoiceWizard(models.Model):
 					for y in x.sale_id:
 						a = create_invoice_entry.invoice_line_ids.create({
 							'price_unit': y.subtotal,
-							'account_id': 27,
+							'account_id': 10,
 							'name': y.product.name,
 							'invoice_id': create_invoice_entry.id,
 						})
 
 					x.invoice_link = create_invoice_entry.id
+
+
+
+class move_extend(models.Model):
+    _inherit = 'account.move'
+
+    branch   = fields.Many2one('branch',string="Branch")
 
 
 
