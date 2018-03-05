@@ -19,13 +19,17 @@
                         <group name="group_left"> 
 
                             <field name="date"/>
-                            <field name="branch"/>
+                            <field name="branch" options="{'no_create':True,'no_edit':True}"/>
 
                         </group>
+
                         <group name="group_right">
                             <field name="types"/>
+                            <field name="package_type" attrs="{'invisible':[('types','!=','package')]}" options="{'no_create':True,'no_edit':True}"/>
+
 
                         </group>
+                        
                     </group>
                     <footer>
                         <button name="%(report_for_membership_reports)d" type="action" string="Print" class="oe_highlight"/>

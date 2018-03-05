@@ -66,6 +66,8 @@ class RegForm(models.Model):
 	premium = fields.Boolean(string="Premium")
 	diet_plan = fields.Boolean(string="Diet Plan")
 	health = fields.Boolean(string="Health Assesment")
+	daily = fields.Boolean(string="Daily Base Member")
+	temp = fields.Boolean(string="Temperary Base Member")
 	approved = fields.Boolean(string="Approved")
 	show_mem = fields.Boolean(string="Show",compute="compute_show_fields")
 	result = fields.Boolean(string="result",compute="compute_result")
@@ -191,9 +193,8 @@ class RegForm(models.Model):
 
 		rec = self.env['reg.form'].search([('stages','=','member')])
 		for x in rec:
-			if x.normal_date:
-				if today_date >= x.normal_date:
-					x.approved = False
+			if x.invoice_link.stages == 'paid':
+				x.approved = False
 
 		# for z in sale_rec:
 		# 	print "333333333333333333333333333"
@@ -1564,6 +1565,7 @@ class RegPackage(models.Model):
 	pakg_tree = fields.One2many('reg.package.tree', 'pakg_id')
 	seq_id = fields.Char(string="Package No.",readonly=True)
 	branch = fields.Many2one('branch',string='Branch',readonly=True)
+	package_type = fields.Many2one('package.type',string="Package Type")
 
 	@api.onchange('name')
 	def get_customer(self):
@@ -1588,6 +1590,11 @@ class RegPackageTree(models.Model):
 	amount = fields.Float(string="Amount")
 	pakg_id = fields.Many2one('reg.package')
 
+
+class TypePackage(models.Model):
+	_name = 'package.type'
+
+	name = fields.Char(string='name')
 
 # class RegServiceTree(models.Model):
 #     _name = 'service.package'
@@ -1859,13 +1866,15 @@ class RegPurchase(models.Model):
 		self.subtotal = value
 
 
-	@api.onchange('membership_no')
+	@api.onchange('membership_no','name')
 	def get_customer(self):
 		users = self.env['res.users'].search([('id','=',self._uid)])
+		self.branch = users.branch.id
 		if self.membership_no:
 			self.name = self.membership_no.member_link.id
 			self.member_no = self.membership_no.memship_no
 			self.branch = users.branch.id
+
 
 
 class RegPurchaseTree(models.Model):
@@ -1935,9 +1944,6 @@ class StockExtend(models.Model):
 		for x in records:
 			prod = prod + x.qty
 		self.total_purchase = prod
-
-
-
 
 
 

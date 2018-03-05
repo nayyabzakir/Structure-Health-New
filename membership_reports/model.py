@@ -44,21 +44,25 @@ class SampleDevelopmentReport(models.AbstractModel):
         date = record_wizard.date
         branch = record_wizard.branch
         types = record_wizard.types
+        package_type = record_wizard.package_type
         record = self.env['reg.form'].search([('branch','=',record_wizard.branch.id)])
 
         if types == 'active':
+            rep_type = "ACTIVE MEMBERS"
             membership = []
             for x in record:
                 if x.stages == 'member':
                     membership.append(x)
 
         if types == 'nonactive':
+            rep_type = "NON ACTIVE MEMBERS"
             membership = []
             for x in record:
                 if x.stages == 'non_member':
                     membership.append(x)
 
         if types == 'discontinue':
+            rep_type = "DISCONTINUE MEMBERS"
             current_month = str(date[:7])
             membership = []
             for x in record:
@@ -68,6 +72,7 @@ class SampleDevelopmentReport(models.AbstractModel):
 
 
         if types == 'new':
+            rep_type = "NEW MEMBERS"
             current_month = str(date[:7])
             membership = []
             for x in record:
@@ -78,6 +83,7 @@ class SampleDevelopmentReport(models.AbstractModel):
 
 
         if types == 'diet':
+            rep_type = "DIET PLAN MEMBERS"
             membership = []
             for x in record:
                 if x.stages == 'member':
@@ -86,10 +92,41 @@ class SampleDevelopmentReport(models.AbstractModel):
 
 
         if types == 'health':
+            rep_type = "HEALTH ASSESMENT MEMBERS"
             membership = []
             for x in record:
                 if x.stages == 'member':
                     if x.health == True:
+                        membership.append(x)
+
+
+
+        if types == 'package':
+            pack_type = record_wizard.package_type.name
+            new = pack_type.upper()
+            rep_type = new + ' '+ "PACKAGE MEMBERS"
+            membership = []
+            for x in record:
+                if x.stages == 'member':
+                    if x.package.package_type.id == record_wizard.package_type.id:
+                        membership.append(x)
+
+
+        if types == 'daily':
+            rep_type = "DAILY BASE MEMBERS"
+            membership = []
+            for x in record:
+                if x.stages == 'member':
+                    if x.daily == True:
+                        membership.append(x)
+
+
+        if types == 'temp':
+            rep_type = "TEMPORARY BASE MEMBERS"
+            membership = []
+            for x in record:
+                if x.stages == 'member':
+                    if x.temp == True:
                         membership.append(x)
 
 
@@ -102,6 +139,7 @@ class SampleDevelopmentReport(models.AbstractModel):
             'doc_ids': docids,
             'doc_model': 'reg.form',
             'membership': membership,
+            'rep_type': rep_type,
     
             }
 

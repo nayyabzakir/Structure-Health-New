@@ -103,7 +103,7 @@
                         <div class="report-container">
             
                             <div class="head">
-                                <h2>MEMBERSHIP REPORTS</h2>
+                                <h2>MEMBERSHIP REPORTS FOR <span t-esc="rep_type"></span></h2>
                             </div>
                             
                             <table>
@@ -116,6 +116,7 @@
                                 </tr>
 
                                 <t t-set="i" t-value="1"/>
+                                <t t-set="total" t-value="0"/>
                                 <t t-foreach="membership" t-as="o">
 
                                     <tr>
@@ -133,11 +134,19 @@
                                             <span t-esc="o.package.name"></span>
                                         </td>
                                         <td style="text-align:left;padding-left:8px">
-                                            <span t-esc="o.package_charge"></span>
+                                            <span t-esc="'{:0,}'.format(int(float(o.package_charge)))"></span>
                                         </td>
+                                        <t t-set="total" t-value="total+o.package_charge"/>
+
                                     </tr>
 
                                 </t>
+                                <tr>
+                                    <td colspan="4" style="font-weight:bold">Total</td>
+                                    <td style="text-align:left;padding-left:8px;font-weight:bold">
+                                        <span t-esc="'{:0,}'.format(int(float(total)))"></span>
+                                    </td>
+                                </tr>
                                 
                             </table>
 

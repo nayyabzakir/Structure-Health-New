@@ -87,6 +87,8 @@
                                         <field name="premium"/>
                                         <field name="diet_plan"/>
                                         <field name="health"/>
+                                        <field name="daily"/>
+                                        <field name="temp"/>
                                         <field name="approved" invisible="1"/>
                                         <field name="write_date" string="Dis Continue Date"/>
                                         <!-- <field name="assesment"/> -->
@@ -1702,7 +1704,8 @@
                                 <group>
                                     <field name="seq_id"/>  
                                     <field name="name"/>   
-                                    <field name="month"/>   
+                                    <field name="month"/>  
+                                    <field name="package_type"/>  
                                 </group>
 
                                 <group>

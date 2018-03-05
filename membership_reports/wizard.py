@@ -26,7 +26,9 @@ class RegionWiseDetail(models.Model):
 
     date = fields.Date("Date",required=True)
     branch = fields.Many2one("branch",string="Branch",required=True)
-    types = fields.Selection([('active', 'Active Member'), ('nonactive', 'Non Active Member'),('discontinue', 'Discontinue Member'),('new', 'New Member'),('diet', 'Diet Plan Member'),('health', 'Health Assessment Member'),('half', 'Half Yearly Package Member'),('quarter', 'Quarterly Package Member'),('corporate', 'Corporate Package Member'),('family', 'Family Package Member'),('yearly', 'Yearly Package Member'),('premium', 'Premium Member'),('daily','Daily Base Member'),('temp', 'Temperary Base Member')], string="Type", required=True)
+    types = fields.Selection([('active', 'Active Member'), ('nonactive', 'Non Active Member'),('discontinue', 'Discontinue Member'),('new', 'New Member'),('diet', 'Diet Plan Member'),('health', 'Health Assessment Member'),('package', 'Package Wise Member'),('premium', 'Premium Member'),('daily','Daily Base Member'),('temp', 'Temporary Base Member')], string="Type", required=True)
+    package_type = fields.Many2one('package.type',string="Package Type")
+
 
 
 
