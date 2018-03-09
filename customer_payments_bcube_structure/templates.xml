@@ -41,7 +41,7 @@
                     <field name="name"  placeholder="e.g. invoice SAJ/0042" attrs="{'readonly':[('state','=','post')]}"/>
                     <field name="journal_entry_id"  readonly = "True"/>   
                     <field name="receipts" invisible='1'/> 
-                    <field name="branch"/> 
+                    <field name="branch" readonly="1"/> 
              <!--        <field name = "firm_partner" attrs="{'readonly':[('state','=','post')]}"/>
                     <field name = "tagm_entity" attrs="{'readonly':[('state','=','post')]}"/>  -->
                     
@@ -201,11 +201,11 @@
 
 
 
-     <!-- <menuitem id="sub_menu_customer_payments" 
-     name="Customer Payments" 
-     action="new_action_customer_payments" 
-     parent="reg_form.reg_form_invoice"
-     sequence="2"/>  -->
+     <menuitem id="sub_menu_customer_payments"
+     name="Receipts"
+     action="new_action_customer_payments"
+     parent="account.menu_finance_payables"
+     sequence="2"/>
 
 
     <menuitem id="sub_menu_supplier_payments" 

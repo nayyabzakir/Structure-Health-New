@@ -30,7 +30,7 @@ class CustomerPayment(models.Model):
 	membership_no       = fields.Char(string="Membership No.")
 	invoice_link        = fields.Many2one('account.invoice', string="Invoice")
 	receipts            = fields.Boolean(default=True)
-	# branch              = fields.Many2one('reg.branch',string="Branch")
+	branch              = fields.Many2one('branch',string="Branch")
 	state               = fields.Selection([
 					('draft', 'Draft'),
 					('post', 'Posted'),

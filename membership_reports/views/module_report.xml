@@ -97,6 +97,20 @@
                                 margin-top: 70px;
                                 margin-left: 70px;
                                 }
+
+                            .date {
+                                width: 50%;
+                                float: left;
+                                margin: 0px auto;
+                            }
+
+                            .header {
+                                display: none !important;
+                            }
+
+                            .footer {
+                                display: none !important;
+                            }
                                         
                         </style>
 
@@ -105,14 +119,34 @@
                             <div class="head">
                                 <h2>MEMBERSHIP REPORTS FOR <span t-esc="rep_type"></span></h2>
                             </div>
+                            <t t-set="num" t-value="numb" />
+                            <t t-if="num == 1">
+
+                                <div style="float:left; width: 100%;">
+                                    <p style="float:left; width: 50%; text-align: right; padding: 0px 50px;">
+                                        <b><span class="solid">From: </span></b>
+                                        <span class="liquid" t-esc="date_from"></span>
+                                    </p>
+
+                                    <p style="float:left; width: 50%; text-align: left; padding: 0px 50px;">
+                                        <b><span class="solid">To: </span></b>
+                                        <span class="liquid" t-esc="date_to"></span>
+                                    </p>
+                                </div>
+
+                            </t>
+
                             
                             <table>
                                 <tr>
                                     <th>Sr No</th>
                                     <th style="text-align:left;padding-left:8px">NAME</th>
+                                    <th>MEMBERSHIP NO</th>
                                     <th>DOJ</th>
                                     <th style="text-align:left;padding-left:8px">PACKAGE</th>
+                                    <th>BRANCH</th>
                                     <th style="text-align:left;padding-left:8px">PACKAGE CHARGES</th>
+
                                 </tr>
 
                                 <t t-set="i" t-value="1"/>
@@ -128,10 +162,17 @@
                                             <span t-esc="o.name"></span>
                                         </td>
                                         <td>
+                                            <span t-esc="o.memship_no"></span>   
+                                            
+                                        </td>
+                                        <td>
                                             <span t-esc="o.joining"></span>
                                         </td>
                                         <td style="text-align:left;padding-left:8px">
                                             <span t-esc="o.package.name"></span>
+                                        </td>
+                                        <td style="padding:3px">
+                                            <span t-esc="o.branch.name"></span>   
                                         </td>
                                         <td style="text-align:left;padding-left:8px">
                                             <span t-esc="'{:0,}'.format(int(float(o.package_charge)))"></span>
@@ -142,7 +183,7 @@
 
                                 </t>
                                 <tr>
-                                    <td colspan="4" style="font-weight:bold">Total</td>
+                                    <td colspan="6" style="font-weight:bold">Total</td>
                                     <td style="text-align:left;padding-left:8px;font-weight:bold">
                                         <span t-esc="'{:0,}'.format(int(float(total)))"></span>
                                     </td>

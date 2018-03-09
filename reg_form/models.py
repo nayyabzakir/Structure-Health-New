@@ -5,6 +5,8 @@ from openerp import models, fields, api
 from datetime import datetime, timedelta , date
 import time
 from dateutil.relativedelta import relativedelta
+# from openerp.tools import image_colorize, image_resize_image_big
+
 
 
 class RegForm(models.Model):
@@ -91,6 +93,7 @@ class RegForm(models.Model):
 	emg_name_1 = fields.Char(string="Name")
 	emg_contact_1 = fields.Char(string="Contact")
 	emg_addres_1 = fields.Char(string="Address")
+	photo = fields.Binary(string="Image to upload", compute="get_default_image")
 	stages = fields.Selection([
 		('leads', 'Leads'),
 		('app_form', 'Registration Form'),
@@ -133,6 +136,12 @@ class RegForm(models.Model):
 	_sql_constraints = [
 	('memship_no', 'unique(memship_no)','This Membership Number Already Esixts!')
 	]
+
+
+	# @api.model
+	# def _get_default_image(self, colorize=False):
+	# 	image = image_colorize(open(openerp.modules.get_module_resource('base','static/src/img', 'avatar.png')).read())
+	# 	return image_resize_image_big(image.encode('base64'))
 
 
 	@api.multi
@@ -191,9 +200,9 @@ class RegForm(models.Model):
 				x.last_date = start_date + relativedelta(months=x.package.month)
 				x.approved = True
 
-		rec = self.env['reg.form'].search([('stages','=','member')])
+		rec = self.env['reg.form'].search([])
 		for x in rec:
-			if x.invoice_link.stages == 'paid':
+			if x.invoice_link.stages == 'new':
 				x.approved = False
 
 		# for z in sale_rec:
@@ -237,6 +246,15 @@ class RegForm(models.Model):
 	def compute_due_amt(self):
 		if self.invoice_link:
 			self.due_amt = self.invoice_link.due_amt
+
+
+	@api.one
+	def get_default_image(self):
+		rec = self.env['res.partner'].search([('id','=',self.member_link.id)])
+		self.photo = rec.image
+
+
+			
 
 
 
@@ -292,13 +310,13 @@ class RegForm(models.Model):
 			x.property_account_receivable_id = 5
 			x.property_account_payable_id = 6
 
-	@api.multi
-	def member_no_get(self):
-		rec = self.env['reg.form'].search([])
-		for x in rec:
-			record = self.env['account.invoice'].search([('id','=',x.invoice_link.id)])
-			if record:
-				record.membership_no = x.memship_no
+	# @api.multi
+	# def member_no_get(self):
+	# 	rec = self.env['mail.tracking.value'].search([('mail_message_id.res_id','=',self.id)])
+	# 	print rec.field
+	# 	print rec.new_value_char
+	# 	print rec.mail_message_id.date
+	# 	print "nnnnnnnnnnnnnnnnnnnnn"
 
 
 
@@ -326,10 +344,7 @@ class RegForm(models.Model):
 	# def rec_name(self):
 	# 	records = self.env['reg.form'].search([])
 	# 	for x in records:
-	# 		if x.stages == 'non_member':
-	# 			print x
-	# 			print "kooooooooooooooooooooo"
-	# 			x.rec_new_name = str(x.name) + ' ' + str(x.memship_no)
+	# 		x.rec_new_name = str(x.name) + ' ' + str(x.memship_no)
 
 
 	@api.multi
@@ -367,6 +382,7 @@ class RegForm(models.Model):
 
 	@api.multi
 	def create_invoice(self):
+		print "111111111111111111111111111111111"
 		
 		member_entries = self.env['res.partner'].search([])
 		create_member = member_entries.create({
@@ -385,6 +401,7 @@ class RegForm(models.Model):
 	
 		if self.stages == 'member' or self.stages == 'app_form' or self.stages == 'non_member':
 			invoice_due = datetime.strptime(self.invocie_date,"%Y-%m-%d")
+			print "22222222222222222222222222222"
 
 			value = 0
 			discount = " "
@@ -571,7 +588,7 @@ class RegStatus(models.Model):
 class RegAccount(models.Model):
 	_inherit = 'account.invoice'
 
-	branch = fields.Many2one('branch', string='Branch')
+	branch = fields.Many2one('branch', string='Branch',readonly=True)
 	due_date = fields.Date(string='Due Date',readonly=True)
 	status = fields.Many2one('reg.status',string='Status')
 	check = fields.Boolean()
@@ -600,7 +617,9 @@ class RegAccount(models.Model):
 
 	@api.onchange('partner_id')
 	def show_name(self):
+		users = self.env['res.users'].search([('id','=',self._uid)])
 		if self.partner_id:
+			self.branch = users.branch.id
 			if self.partner_id.walkin == True:
 				self.check = True
 			else:
@@ -776,11 +795,23 @@ class RegAppoint(models.Model):
 		if new_record.s_time:
 			rec = self.env['struct.appointment'].search([('id','!=',new_record.id)])
 			for x in rec:
-				if x.date == new_record.date:
+				if x.date == new_record.date and x.mamsus_name.id == new_record.mamsus_name.id:
 					if (new_record.s_time >= x.s_time and new_record.s_time <= x.e_time) or (new_record.e_time >= x.s_time and new_record.e_time <= x.e_time) or (new_record.s_time <= x.s_time and new_record.e_time >= x.e_time):
 						raise  ValidationError('Cannot Create Record . Please Change Timings')
 
 		return new_record
+
+	@api.multi
+	def write(self, vals):
+		super(RegAppoint, self).write(vals)
+		if self.s_time:
+			rec = self.env['struct.appointment'].search([('id','!=',self.id)])
+			for x in rec:
+				if x.date == self.date and x.mamsus_name.id == self.mamsus_name.id:
+					if (self.s_time >= x.s_time and self.s_time <= x.e_time) or (self.e_time >= x.s_time and self.e_time <= x.e_time) or (self.s_time <= x.s_time and self.e_time >= x.e_time):
+						raise  ValidationError('Cannot Create Record . Please Change Timings')
+
+		return True
 
 
 
@@ -1690,18 +1721,18 @@ class PartnerExtend(models.Model):
 	# 	return new_record
 
 
-class struct_user_extend(models.Model):
-	_inherit  = 'res.users'
-	branch = fields.Many2one ('branch',string="Branch")
+# class struct_user_extend(models.Model):
+# 	_inherit  = 'res.users'
+# 	branch = fields.Many2one ('branch',string="Branch")
 
 
-class branchAAA(models.Model):
-	_name = 'branch'
+# class branchAAA(models.Model):
+# 	_name = 'branch'
 
-	address = fields.Char(string="Address")
-	name = fields.Char(string="Name")
-	phone = fields.Char(string="Phone")
-	mobile = fields.Char(string="Mobile")
+# 	address = fields.Char(string="Address")
+# 	name = fields.Char(string="Name")
+# 	phone = fields.Char(string="Phone")
+# 	mobile = fields.Char(string="Mobile")
 
 
 class journal_extend(models.Model):
@@ -1873,7 +1904,6 @@ class RegPurchase(models.Model):
 		if self.membership_no:
 			self.name = self.membership_no.member_link.id
 			self.member_no = self.membership_no.memship_no
-			self.branch = users.branch.id
 
 
 
@@ -1944,6 +1974,9 @@ class StockExtend(models.Model):
 		for x in records:
 			prod = prod + x.qty
 		self.total_purchase = prod
+
+
+
 
 
 

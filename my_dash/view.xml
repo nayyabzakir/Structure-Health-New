@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="current_member" model="ir.actions.act_window">
+            <field name="domain">[('stages', '=', 'member')]</field>
+            <field name="name">Current Members</field>
+            <field name="res_model">reg.form</field>
+            <field name="view_id" ref="reg_form.view_tree_reg_form" />
+        </record>
+
+        <record id="cancel_member" model="ir.actions.act_window">
+            <field name="domain">[('stages', '=', 'cancel')]</field>
+            <field name="name">Cancel Members</field>
+            <field name="res_model">reg.form</field>
+            <field name="view_id" ref="reg_form.view_tree_reg_form" />
+        </record>
+
+        <record id="new_member" model="ir.actions.act_window">
+            <field name="domain">[('stages', '=', 'member'),('joining','&lt;=',(context_today()+relativedelta(day=31)).strftime('%Y-%m-%d')),('joining','&gt;=',(context_today()-relativedelta(day=1)).strftime('%Y-%m-%d'))]</field>
+            <field name="name">New Members</field>
+            <field name="res_model">reg.form</field>
+            <field name="view_id" ref="reg_form.view_tree_reg_form" />
+        </record>
+
+        <record id="cancel_massage" model="ir.actions.act_window">
+            <field name="domain">[('stages', '=', 'cancel')]</field>
+            <field name="name">Cancel Massage</field>
+            <field name="res_model">struct.appointment</field>
+            <field name="view_id" ref="reg_form.view_tree_appoint"/>
+        </record>
+
+        <record id="booked_massage" model="ir.actions.act_window">
+            <field name="domain">[('stages', '=', 'booked')]</field>
+            <field name="name">Cancel Massage</field>
+            <field name="res_model">struct.appointment</field>
+            <field name="view_id" ref="reg_form.view_tree_appoint"/>
+        </record>
+
+        <record id="daily_visitor" model="ir.actions.act_window">
+            <field name="domain">[('date','=',(context_today()+relativedelta(day=0)).strftime('%Y-%m-%d'))]</field>
+            <field name="name">Daily Visitor</field>
+            <field name="res_model">struct.visitor</field>
+            <field name="view_id" ref="reg_form.view_tree_visit"/>
+        </record>
+
+        <record id="monthly_visitor" model="ir.actions.act_window">
+            <field name="domain">[('date','&lt;=',(context_today()+relativedelta(day=31)).strftime('%Y-%m-%d')),('date','&gt;=',(context_today()+relativedelta(day=1)).strftime('%Y-%m-%d'))]</field>
+            <field name="name">Daily Visitor</field>
+            <field name="res_model">struct.visitor</field>
+            <field name="view_id" ref="reg_form.view_tree_visit"/>
+        </record>
+
+        <record id="daily_receipts" model="ir.actions.act_window">
+            <field name="domain">[('date','=',(context_today()).strftime('%Y-%m-%d')),('receipts', '=',True)]</field>
+            <field name="name">Daily Receipts Amount</field>
+            <field name="res_model">customer.payment.bcube</field>
+            <field name="view_id" ref="customer_payments_bcube_structure.main_customer_tree"/>
+        </record>
+
+        <record id="monthly_receipts" model="ir.actions.act_window">
+            <field name="domain">[('date','&lt;=',(context_today()+relativedelta(day=31)).strftime('%Y-%m-%d')),('date','>=',(context_today()-relativedelta(day=1)).strftime('%Y-%m-%d')),('receipts', '=',True)]</field>
+            <field name="name">Monthly Receipts Amount</field>
+            <field name="res_model">customer.payment.bcube</field>
+            <field name="view_id" ref="customer_payments_bcube_structure.main_customer_tree"/>
+        </record>
+
+
+        <record id="my_dashboard_form" model="ir.ui.view">
+            <field name="name"> My DashBoard</field>
+            <field name="model">my.dash</field>
+            <field name="arch" type="xml">
+                <form string="My DashBoard" create="false" delete="false">
+                    <sheet>
+                        <group name="top" string="Members">
+                            <group name="left" string="Current Members">
+                                <button name="%(current_member)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="current_member_count" widget="statinfo" string="Current Members"/>
+                                </button>
+                                <field name="name" invisible="1"/>
+                            </group>
+                            <group name="right" string="New Members">
+                                <button name="%(new_member)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="new_member_count" widget="statinfo" string="New Members"/>
+                                </button>
+                            </group>
+                        </group>
+
+                        <group name="top">
+                            <group name="left" string="Cancel Members">
+                                <button name="%(cancel_member)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="cancel_member_count" widget="statinfo" string="Cancel Members"/>
+                                </button>
+                            </group>
+                            <group name="right">
+                                
+                            </group>
+                        </group>
+
+                        <group name="top" string="Massage">
+                            <group name="left" string="Cancel Massage">
+                                <button name="%(cancel_massage)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="cancel_massage_count" widget="statinfo" string="Cancel Massage"/>
+                                </button>
+                            </group>
+                            <group name="right" string="Booking Massage">
+                                 <button name="%(booked_massage)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="booked_massage_count" widget="statinfo" string="Booked Massage"/>
+                                </button>
+                            </group>
+                        </group>
+
+                        <group name="top" string="Visitor">
+                            <group name="left" string="Daily Visitor">
+                                <button name="%(daily_visitor)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="daily_visitor_count" widget="statinfo" string="Daily Visitor"/>
+                                </button>
+                            </group>
+                            <group name="right" string="Monthly Visitor">
+                                <button name="%(monthly_visitor)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="monthly_visitor_count" widget="statinfo" string="Daily Visitor"/>
+                                </button>
+                            </group>
+                        </group>
+
+                        <group name="top" string="Receipts">
+                            <group name="left" string="Today Receipts">
+                                <button name="%(daily_receipts)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="daily_receipts_amount" widget="statinfo" string="Today Receipts Amount"/>
+                                </button>
+                            </group>
+                            <group name="right" string="Current Month Receipts">
+                                 <button name="%(monthly_receipts)d" type="action" class="oe_stat_button trans" icon="fa-truck">
+                                    <field name="monthly_receipts_amount" widget="statinfo" string="Cancel Massage"/>
+                                </button>
+                            </group>
+                        </group>
+
+
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="my_dashboard_tree" model="ir.ui.view">
+            <field name="name">My DashBoard Tree</field>
+            <field name="model">my.dash</field>
+            <field name="arch" type="xml">
+                <tree string="My DashBoard" create="false" delete="false">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="my_dashboard_action" model="ir.actions.act_window">
+            <field name="name">My DashBoard</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">my.dash</field>
+            <field name="view_mode">form</field>
+        </record>
+
+
+
+        <!-- This Menu Item Must have a parent -->
+        <menuitem id="gym_dashboard_menu_item" name="My DashBoard" parent="reg_form.reg_form_parent" sequence="0"/>
+        <!-- This Menu Item must have a parent and an action -->
+        <menuitem id="my_dashboard_menu_item" name="My DashBoard" parent="gym_dashboard_menu_item" action="my_dashboard_action" sequence="1"/>
+
+
+    </data>
+</odoo>

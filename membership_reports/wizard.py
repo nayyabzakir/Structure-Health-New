@@ -22,16 +22,27 @@ from openerp import models, fields, api
 
 
 class RegionWiseDetail(models.Model):
-    _name = "membership.reports"
+	_name = "membership.reports"
 
-    date = fields.Date("Date",required=True)
-    branch = fields.Many2one("branch",string="Branch",required=True)
-    types = fields.Selection([('active', 'Active Member'), ('nonactive', 'Non Active Member'),('discontinue', 'Discontinue Member'),('new', 'New Member'),('diet', 'Diet Plan Member'),('health', 'Health Assessment Member'),('package', 'Package Wise Member'),('premium', 'Premium Member'),('daily','Daily Base Member'),('temp', 'Temporary Base Member')], string="Type", required=True)
-    package_type = fields.Many2one('package.type',string="Package Type")
-
-
-
-
+	date_from = fields.Date("Date From")
+	date_to = fields.Date("Date To")
+	branch = fields.Many2one("branch",string="Branch",required=True)
+	types = fields.Selection([('active', 'Active Member'), ('nonactive', 'Non Active Member'),('discontinue', 'Discontinue Member'),('new', 'New Member'),('diet', 'Diet Plan Member'),('health', 'Health Assessment Member'),('package', 'Package Wise Member'),('premium', 'Premium Member'),('daily','Daily Base Member'),('temp', 'Temporary Base Member')], string="Report Type", required=True)
+	package_type = fields.Many2one('package.type',string="Package Type")
+	tick = fields.Boolean()
 
 
-    
+	@api.onchange('types')
+	def get_type(self):
+		if self.types:
+			if self.types == 'discontinue' or self.types == 'new':
+				self.tick = True
+			else:
+				self.tick = False
+
+
+
+
+
+
+	

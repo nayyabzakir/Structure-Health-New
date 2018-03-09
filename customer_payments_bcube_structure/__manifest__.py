@@ -6,7 +6,7 @@
     'author': 'bcube',
     'summary': 'Managing customer payments',
     'version': '1',
-    'depends': ['base','account'],
+    'depends': ['base','account','branch'],
     'data': [ 'templates.xml'],
     'installable': True,
     'auto_install': False

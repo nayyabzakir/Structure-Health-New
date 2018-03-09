@@ -41,10 +41,12 @@ class SampleDevelopmentReport(models.AbstractModel):
 
         record_wizard_del = self.env['membership.reports'].search([('id','!=',emp_list_max)])
         record_wizard_del.unlink()
-        date = record_wizard.date
+        date_from = record_wizard.date_from
+        date_to = record_wizard.date_to
         branch = record_wizard.branch
         types = record_wizard.types
         package_type = record_wizard.package_type
+        numb = 0
         record = self.env['reg.form'].search([('branch','=',record_wizard.branch.id)])
 
         if types == 'active':
@@ -62,23 +64,27 @@ class SampleDevelopmentReport(models.AbstractModel):
                     membership.append(x)
 
         if types == 'discontinue':
+            numb = 1
             rep_type = "DISCONTINUE MEMBERS"
-            current_month = str(date[:7])
             membership = []
             for x in record:
                 if x.stages == 'non_member':
-                    if str(x.write_date[:7]) == current_month:
-                        membership.append(x)
+                    rec = self.env['mail.tracking.value'].search([('mail_message_id.res_id','=',x.id)])
+                    if rec:
+                        for z in rec:
+                            if z.field == 'stages' and z.new_value_char == 'Non Active Members':
+                                if z.mail_message_id.date >= date_from and z.mail_message_id.date <= date_to:
+                                    membership.append(x)
 
 
         if types == 'new':
+            numb = 1
             rep_type = "NEW MEMBERS"
-            current_month = str(date[:7])
             membership = []
             for x in record:
                 if x.stages == 'member':
                     if x.joining:
-                        if str(x.joining[:7]) == current_month:
+                        if x.joining >= date_from and x.joining <= date_to:
                             membership.append(x)
 
 
@@ -129,9 +135,6 @@ class SampleDevelopmentReport(models.AbstractModel):
                     if x.temp == True:
                         membership.append(x)
 
-
-
-
         
 
         docargs = {
@@ -140,6 +143,9 @@ class SampleDevelopmentReport(models.AbstractModel):
             'doc_model': 'reg.form',
             'membership': membership,
             'rep_type': rep_type,
+            'date_from': date_from,
+            'date_to': date_to,
+            'numb': numb,
     
             }
 
